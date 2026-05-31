@@ -1,0 +1,33 @@
+p,label {
+    font-family: Roboto, Arial, sans-serif;
+}
+
+.spaced-lines {
+    line-height: 1.5;
+}
+
+.experiment-paragraph {
+    line-height: 0.6;   /* spacing between lines within the paragraph */
+}
+
+.vertical-container {
+    display: flex;          /* Use flexbox */
+    flex-direction: column; /* Arrange items in a column */
+    gap: 10px;              /* Optional: Add space between elements */
+	align-items: flex-start;/* Align to the left */
+}
+
+.stiff-container-width {
+    width: 500px;
+}
+
+.horizontal-container {
+    display: flex;          /* Use flexbox */
+    flex-direction: row; 	/* Arrange items in a column */
+	flex-wrap: wrap;		/* Row wrapping */
+    gap: 10px;              /* Optional: Add space between elements */
+}
+
+.horizontal-separation-left {
+    margin-left: 40px;
+}

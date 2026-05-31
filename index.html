@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Science is Magic</title>
+        <link rel="icon" href="/star.svg" type="image/svg+xml">
+	    <link rel='stylesheet' href='./styles.css'>
+    </head>
+    <body>
+        <h2>Science is Magic</h2>
+        <div class='horizontal-container'>
+            <div class='vertical-container stiff-container-width'>
+                <div>
+                    <h3>Round characteristics</h3>
+                    <input type="number" id='roundDifficulty' min="1" max="10" step="1" value="1"></input>
+                    <label for="roundDifficulty">Round difficulty</label>
+                </div>
+                <div>
+                    <div class='horizontal-container'>
+                        <h3 id = "spell name">Spell</h3>
+                        <input type='button' id='rerollSpellButton' value='Reroll Spell'></input>
+                    </div>
+                    <p id="spell description" class = 'spaced-lines'></p>
+                </div>
+                <div>
+                    <h3>Perform a magical experiment</h3>
+                    <input id="experiment parameters">
+                    <label for="gamesPerPlayerPair">Experiment parameters</label>
+                    <br></br>
+                    <input type='button' id='runExperimentButton' value='Run Experiment'></input>
+                    <input type='button' id='guessRuleButton' value='Guess Rule'></input>
+                    <input type='button' id='revealRuleButton' value='Reveal Rule'></input>
+                </div>
+                <div id = "ruleRevealContainer">
+                </div>
+                <div>
+                    <textarea id="ruleGuess" rows="4" cols="40" placeholder="Rule Guess"></textarea>
+                </div>
+            </div>
+            <div id = "experimentLog" class='vertical-container horizontal-separation-left'>
+                <h3>Experiment log</h3>
+            </div>
+        </div>
+        <script type='module' src='./main.js'></script>
+    </body>
+</html>
