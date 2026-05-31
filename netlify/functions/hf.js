@@ -3,7 +3,8 @@ exports.handler = async (event) => {
   try {
     console.log('Received prompt:', event.body);
     const { prompt } = JSON.parse(event.body);
-    const HF_URL = 'https://api-inference.huggingface.co/models/gpt2'
+    //const HF_URL = 'https://api-inference.huggingface.co/models/gpt2';
+    const HF_URL = 'https://router.huggingface.co/hf-inference/models/gpt2';
     //const HF_URL = 'https://jsonplaceholder.typicode.com/posts';
     
     const response = await fetch(HF_URL, {
