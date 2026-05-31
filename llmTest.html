@@ -16,7 +16,7 @@ async function callFunction() {
     console.error('Error calling function:', error);
   }
 }
-console.log('test');
+console.log('test0');
 callFunction();
 
             document.getElementById('send').onclick = async () => {
@@ -25,7 +25,7 @@ callFunction();
                 console.log('test2');
                 try {
                     console.log('test3');
-                    const r = await fetch('.netlify/functions/hf', {
+                    const r = await fetch('/.netlify/functions/hf', {
                         method: 'POST',
                         headers: {'Content-Type':'application/json'},
                         body: JSON.stringify({ prompt })
