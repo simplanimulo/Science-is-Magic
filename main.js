@@ -11,12 +11,15 @@ const revealRuleButton = document.getElementById("revealRuleButton");
 const experimentLog = document.getElementById("experimentLog");
 const ruleRevealContainer = document.getElementById("ruleRevealContainer");
 const rerollSpellButton = document.getElementById('rerollSpellButton');
+const guessRuleButton = document.getElementById('guessRuleButton');
+const ruleGuessInput = document.getElementById('ruleGuessInput');
 
 let roundDifficulty;
 let spellParameters;
 let s; // spell
 let ruleRevealed;
 let experimentNumber;
+let ruleGuessNumber;
 
 function init() {
     spellName.innerHTML = '';
@@ -32,6 +35,7 @@ function init() {
     initSpellInfoDisplay();
     ruleRevealed = false;
     experimentNumber = 0;
+    ruleGuessNumber = 0;
 }
 
 function initSpellParameters() {
@@ -85,27 +89,35 @@ rerollSpellButton.addEventListener('click', (e) => {
     init();
 });
 
+guessRuleButton.addEventListener('click', (e) => {
+    ruleGuessNumber += 1;
+    let ruleGuess = '<strong>Rule guess ' + ruleGuessNumber + ':</strong> ';
+    ruleGuess += ruleGuessInput.value;
+    addExperimentLogEntry(ruleGuess);
+});
 
 function runExperiment(parameters) {
     experimentNumber++;
-    const p = document.createElement('p');
-    p.setAttribute('class', 'experiment-paragraph')
     let experimentDescription = '';
     experimentDescription += 'Running <strong>experiment ' + experimentNumber + '</strong>';
     experimentDescription += ' with parameters ' + parameters + '. ........Result: ';
     const parametersArray = parameters.trim().split(/\s+/).map(Number); // array of numbers
     try {
         s.setSpellVariables(parametersArray);
+        const result = evalTree(s.effectEquation);
+        experimentDescription += 'The measured value of <strong>' + s.effectName + '</strong> is ' + result +'.';
     } catch (err) {
         experimentDescription += 'Failure, ';
         experimentDescription += (err && err.message) ? err.message : String(err);
-        p.innerHTML = experimentDescription;
-        experimentLog.appendChild(p);
-        return;
     }
-    const result = evalTree(s.effectEquation);
-    experimentDescription += 'The measured value of <strong>' + s.effectName + '</strong> is ' + result +'.';
-    p.innerHTML = experimentDescription;
+
+    addExperimentLogEntry(experimentDescription);
+}
+
+function addExperimentLogEntry(entry) {
+    const p = document.createElement('p');
+    p.setAttribute('class', 'experiment-paragraph');
+    p.innerHTML = entry;
     experimentLog.appendChild(p);
 }
 

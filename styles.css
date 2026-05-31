@@ -7,7 +7,8 @@ p,label {
 }
 
 .experiment-paragraph {
-    line-height: 0.6;   /* spacing between lines within the paragraph */
+    margin: 0;              /* so vertical separations are smaller */
+    /*line-height: 0.6; -->> could be used to further decrease separation */
 }
 
 .vertical-container {
