@@ -7,11 +7,17 @@
         <button id="send">Send</button>
         <pre id="out"></pre>
         <script>
+
+  const response = await fetch('/.netlify/functions/testf');
+  const data = await response.json();
+  console.log(data.message); // "Hello from Netlify Functions!"
+
+
             document.getElementById('send').onclick = async () => {
                 const prompt = document.getElementById('prompt').value;
                 document.getElementById('out').textContent = 'Loading...';
                 try {
-                    const r = await fetch('/netlify/functions/hf', {
+                    const r = await fetch('/.netlify/functions/hf', {
                         method: 'POST',
                         headers: {'Content-Type':'application/json'},
                         body: JSON.stringify({ prompt })
