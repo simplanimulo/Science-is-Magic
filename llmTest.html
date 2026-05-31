@@ -11,7 +11,7 @@
                 const prompt = document.getElementById('prompt').value;
                 document.getElementById('out').textContent = 'Loading...';
                 try {
-                    const r = await fetch('/api/hf', {
+                    const r = await fetch('/.netlify/functions/hf', {
                         method: 'POST',
                         headers: {'Content-Type':'application/json'},
                         body: JSON.stringify({ prompt })
