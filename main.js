@@ -17,7 +17,6 @@ const ruleGuessInput = document.getElementById('ruleGuessInput');
 let roundDifficulty;
 let spellParameters;
 let s; // spell
-let ruleRevealed;
 let experimentNumber;
 let ruleGuessNumber;
 
@@ -33,7 +32,6 @@ function init() {
     console.log('effectEquation: ' + printExpr(s.effectEquation));
     console.log(getTreeCharacteristics(s.effectEquation));
     initSpellInfoDisplay();
-    ruleRevealed = false;
     experimentNumber = 0;
     ruleGuessNumber = 0;
 }
@@ -60,17 +58,11 @@ function initSpellInfoDisplay() {
 }
 
 revealRuleButton.addEventListener('click', (e) => {
-    if(!ruleRevealed) {
-        const p = document.createElement('p');
-        p.setAttribute('class', 'spaced-lines');
-        let ruleDescription = '';
-        ruleDescription += '<strong> The rule </strong> for'
-        ruleDescription += ' <strong>' + s.effectName + '</strong> goes as follows: <br />'
-        ruleDescription += printExpr(s.effectEquation);
-        p.innerHTML = ruleDescription;
-        ruleRevealContainer.appendChild(p);
-        ruleRevealed = true;
-    }
+    let ruleDescription = '';
+    ruleDescription += '<strong>RULE REVEAL</strong> for '
+    ruleDescription += ' <strong>' + s.effectName + '</strong>: '
+    ruleDescription += printExpr(s.effectEquation);
+    addExperimentLogEntry(ruleDescription);
 });
 
 runExperimentButton.addEventListener('click', (e) => {
