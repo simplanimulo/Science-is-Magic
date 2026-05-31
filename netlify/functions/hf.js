@@ -1,9 +1,11 @@
 exports.handler = async (event) => {
-    console.log('Eh?');
+
+  try {
+    console.log('Received prompt:', event.body);
+    const { prompt } = JSON.parse(event.body);
     const HF_URL = 'https://api-inference.huggingface.co/models/gpt2'
     //const HF_URL = 'https://jsonplaceholder.typicode.com/posts';
-  try {
-    const { prompt } = JSON.parse(event.body);
+    
     const response = await fetch(HF_URL, {
       method: 'POST',
       headers: {
@@ -12,12 +14,17 @@ exports.handler = async (event) => {
       },
       body: JSON.stringify({ inputs: prompt })
     });
-
-    if (!response.ok) throw new Error(`API error: ${response.status}`);
-
-    const data = await response.json();
-    return { statusCode: 200, body: JSON.stringify(data) };
+    
+    console.log('HF API status:', response.status);
+    const data = await response.text(); // Capture raw response first
+    console.log('HF API raw response:', data);
+    
+    return {
+      statusCode: 200,
+      body: data // Forward raw response to frontend
+    };
   } catch (e) {
+    console.error('Function error:', e);
     return { statusCode: 500, body: JSON.stringify({ error: e.message }) };
   }
 };
