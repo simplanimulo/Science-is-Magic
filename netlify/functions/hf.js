@@ -1,4 +1,5 @@
 exports.handler = async (event) => {
+    console.log('Eh?');
     //const HF_URL = 'https://api-inference.huggingface.co/models/gpt2'
     const HF_URL = 'https://jsonplaceholder.typicode.com/posts';
   try {
