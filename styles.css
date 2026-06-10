@@ -32,3 +32,32 @@ p,label {
 .horizontal-separation-left {
     margin-left: 40px;
 }
+
+.flow{
+  flex:1 1 auto;        /* grow to fill remaining space */
+  max-width:100vw;      /* ensure it never exceeds viewport */
+  box-sizing:border-box;
+  /*padding:12px;*/
+  /*border:1px solid #ccc;*/
+  white-space:normal;   /* allow wrapping */
+  overflow:auto;        /* optional: internal scroll if very tall */
+  max-height:80vh;      /* optional cap so it won't push layout vertically */
+}
+
+.main{
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: flex-start;
+}
+
+.left{
+    width: 500px;
+    flex: 0 0 500px; /* don't grow or shrink */
+}
+
+.right{
+    flex: 1 1 auto;    /* grow and shrink to fill remaining space */
+    min-width: 0;      /* allow content to shrink below its intrinsic width */
+    word-wrap: break-word; /* break long words if needed */
+    overflow-wrap: anywhere; /* safer for long strings without spaces */
+}

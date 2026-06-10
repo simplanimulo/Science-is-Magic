@@ -1,4 +1,5 @@
-export const handler = async (event, context) => {
+//export const handler = async (event, context) => { // this causes an error
+exports.handler = async (event) => {
     console.log('test function starts');
   return {
     statusCode: 200,

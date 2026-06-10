@@ -16,23 +16,20 @@ async function callFunction() {
     console.error('Error calling function:', error);
   }
 }
-console.log('test0');
 callFunction();
 
             document.getElementById('send').onclick = async () => {
                 const prompt = document.getElementById('prompt').value;
                 document.getElementById('out').textContent = 'Loading...';
-                console.log('test2');
                 try {
-                    console.log('test3');
-                    const r = await fetch('/.netlify/functions/hf', {
+                    const r = await fetch('/.netlify/functions/hf2', {
                         method: 'POST',
                         headers: {'Content-Type':'application/json'},
                         body: JSON.stringify({ prompt })
                     });
-                    console.log('test4');
-                    const data = await r.json();
-                    const text = Array.isArray(data) ? data[0]?.generated_text || JSON.stringify(data) : JSON.stringify(data);
+                    const result = await r.json();
+                    const text = result.message
+                    //const text = Array.isArray(data) ? data[0]?.generated_text || JSON.stringify(data) : JSON.stringify(data);
                     document.getElementById('out').textContent = text;
                 } catch(e) { document.getElementById('out').textContent = 'Error: '+e.message; }
             };

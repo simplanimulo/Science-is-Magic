@@ -1,9 +1,10 @@
 import {Spell, shuffle} from './round.js';
 import {randomTree, randomTree2, evalTree, printExpr, getTreeCharacteristics}  from './rule_tree.js';
+import {generateComparisonPromptObject} from './promptBuilder.js'
 
-window.m = {Spell, shuffle, randomTree, randomTree2, printExpr, getTreeCharacteristics}; // declared for console use
+//window.m = {Spell, shuffle, randomTree, randomTree2, printExpr, getTreeCharacteristics}; // declared for console use
 
-const spellName = document.getElementById("spell name");
+const spellName = document.getElementById("spellName");
 const spellDescription = document.getElementById("spell description");
 const experimentInput = document.getElementById("experiment parameters");
 const runExperimentButton = document.getElementById("runExperimentButton");
@@ -11,6 +12,7 @@ const revealRuleButton = document.getElementById("revealRuleButton");
 const experimentLog = document.getElementById("experimentLog");
 const ruleRevealContainer = document.getElementById("ruleRevealContainer");
 const rerollSpellButton = document.getElementById('rerollSpellButton');
+const nextRoundButton = document.getElementById('nextRoundButton');
 const guessRuleButton = document.getElementById('guessRuleButton');
 const ruleGuessInput = document.getElementById('ruleGuessInput');
 
@@ -51,9 +53,10 @@ function initSpellParameters() {
 }
 
 function initSpellInfoDisplay() {
-    spellName.innerHTML += ' ' + s.spellName;
-    spellDescription.innerHTML += 'Discover the Rule for the spell\'s <strong>' + s.effectName + '<strong/> <br />';
-    spellDescription.innerHTML += 'The rule may depend on the following spell variables:<br />'
+    spellName.innerHTML += 'Spell ' + s.spellName;
+    spellDescription.innerHTML += 'Discover the Rule (formula) for the <strong>' + s.spellName + '<strong/> ';
+    spellDescription.innerHTML += 'spell\'s <strong>' + s.effectName + '</strong>. <br />';
+    spellDescription.innerHTML += 'The Rule may depend on the following spell variables:<br />';
     spellDescription.innerHTML += s.spellVariablesDescrption();
 }
 
@@ -77,23 +80,41 @@ experimentInput.addEventListener('keydown', (e) => {
   }
 });
 
-rerollSpellButton.addEventListener('click', (e) => {
+nextRoundButton.addEventListener('click', (e) => {
     init();
 });
 
 guessRuleButton.addEventListener('click', (e) => {
     ruleGuessNumber += 1;
-    let ruleGuess = '<strong>Rule guess ' + ruleGuessNumber + ':</strong> ';
-    ruleGuess += ruleGuessInput.value;
-    addExperimentLogEntry(ruleGuess);
+    const ruleGuess = `<strong>Rule guess ${ruleGuessNumber}:</strong> ${ruleGuessInput.value} has quality `;
+    const p = addExperimentLogEntry(ruleGuess);
+    const ruleGuessQualityElem = document.createElement('strong');
+    p.appendChild(ruleGuessQualityElem);
+    const textNode = document.createTextNode('.');
+    p.appendChild(textNode);
+    reportLLMEvaluatedRuleGuessQuality(ruleGuessQualityElem);
 });
+
+async function reportLLMEvaluatedRuleGuessQuality(ruleGuessQualityElem) {
+    ruleGuessQualityElem.textContent = '...calculating';
+    const promptObject = generateComparisonPromptObject(printExpr(s.effectEquation), ruleGuessInput.value);
+    try {
+        const response = await fetch('/.netlify/functions/hf3', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ promptObject })
+        });
+        const result = await response.json();
+        ruleGuessQualityElem.textContent = result.message;
+    } catch(e) { ruleGuessQualityElem.textContent = 'Error: '+ e.message; }
+}
 
 function runExperiment(parameters) {
     experimentNumber++;
     let experimentDescription = '';
     experimentDescription += 'Running <strong>experiment ' + experimentNumber + '</strong>';
     experimentDescription += ' with parameters ' + parameters + '. ........Result: ';
-    const parametersArray = parameters.trim().split(/\s+/).map(Number); // array of numbers
+    const parametersArray = parameters.trim().split(/\s+/).map(Number); // string to array of numbers
     try {
         s.setSpellVariables(parametersArray);
         const result = evalTree(s.effectEquation);
@@ -110,7 +131,8 @@ function addExperimentLogEntry(entry) {
     const p = document.createElement('p');
     p.setAttribute('class', 'experiment-paragraph');
     p.innerHTML = entry;
-    experimentLog.appendChild(p);
+    experimentLog.prepend(p);
+    return p;
 }
 
 init();

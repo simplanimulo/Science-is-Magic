@@ -1,10 +1,9 @@
 exports.handler = async (event) => {
-
+  console.log('module.exports:', module.exports); console.log('typeof handler:', typeof module.exports.handler);
   try {
     console.log('Received prompt:', event.body);
     const { prompt } = JSON.parse(event.body);
     const HF_URL = 'https://router.huggingface.co/v1/chat/completions';
-    //const HF_URL = 'https://jsonplaceholder.typicode.com/posts';
     
     const response = await fetch(HF_URL, {
       method: 'POST',
@@ -15,9 +14,9 @@ exports.handler = async (event) => {
       body: JSON.stringify({
         model: "moonshotai/Kimi-K2-Instruct-0905",
         messages: [
-          { role: "system", content: "You are a helpful assistant." },
-          { role: "user", content: "Explain quantum computing in 20 words or less." }
-          //{ role: "user", content: prompt }
+          //{ role: "system", content: "You are a helpful assistant." },
+          { role: "system", content: "You provide strictly one word answers to questions." },
+          { role: "user", content: prompt }
         ],
         max_tokens: 50,
         temperature: 0.7,
@@ -27,14 +26,14 @@ exports.handler = async (event) => {
     
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     console.log('HF API status:', response.status);
-    const rawData = await response.text(); // Capture raw response first
-    console.log('HF API raw response:', rawData);
-    const data = await response.json();
-    console.log('response.choices[0].message.content:', response.choices[0].message.content);
+    //const rawData = await response.text(); // Capture raw response first
+    //console.log('HF API raw response:', rawData);
+    const result = await response.json();
+    console.log('result.choices[0].message.content:', result.choices[0].message.content);
     
     return {
       statusCode: 200,
-      body: response.choices[0].message.content // Forward raw response to frontend
+      body: JSON.stringify({message: result.choices[0].message.content}) // Forward raw response to frontend
     };
   } catch (e) {
     console.error('Function error:', e);

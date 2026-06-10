@@ -52,8 +52,7 @@ export const spellVariables = [
     new SpellVariable({name: 'target\'s extravagance', scaleType: 'continuous', min: 0, max: 10, type: 'spellVariable'})
 ];
 
-//let spellVariables = ['sun height', 'chant length', 'casting implement length', 'number of targets'];
-export const effectNames = ['mana drain', 'spell power', 'spell duration'];
+export const effectNames = ['mana drain', 'spell power', 'spell duration', 'mana radiation'];
 
 export class Spell {
     constructor(params) {
