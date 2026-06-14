@@ -1,6 +1,7 @@
-export {randomTree, randomTree2, evalTree, printExpr, getTreeCharacteristics}
+export {randomTree2, evalTree, printExpr, getTreeCharacteristics, setOps}
 
-const ops = ['+', '-', '*', '/', 'min', 'max'];
+let ops = ['+', '-', '*', '/', 'min', 'max'];
+function setOps(opsArr) {ops = opsArr;}
 
 function constantEvalObject(objValue, objType) {
     const constant = {
@@ -14,11 +15,12 @@ function constantEvalObject(objValue, objType) {
 
 function randomRealConstantEvalObject(min, max) {
     let objValue = min + Math.random() * (max - min);
+    objValue = Math.round(objValue * 100) / 100; // rounding to 2nd decimal digit
     return constantEvalObject(objValue, 'realConstant');
 }
 
 function randomDiscreteConstantEvalObject(min, max) {
-    let objValue = min + Math.floor(Math.random() * (max - min)) + 1;
+    let objValue = min + Math.floor(Math.random() * (max - min + 1));
     return constantEvalObject(objValue, 'discreteConstant');
 }
 
@@ -40,32 +42,42 @@ function leaf(evalObject) {
     return {type: 'leaf', evalObject};
 }
 
+function poweredLeaf(evalObject, powerChances=[1]) {
+    if (evalObject.min === 0 && evalObject.max === 1 && evalObject.scaleType === "discrete") {
+        return leaf(evalObject);
+    }
+    const sum = Object.values(powerChances).reduce((s, v) => s + v, 0);
+    let i=0;
+    let rand = Math.random() * sum;
+    let power;
+    //console.log('poweredleaf', powerChances, rand);
+    while (true) {
+        if (rand <= powerChances[i]) {
+            power = Math.ceil((i+2)/2);
+            if (i % 2 === 1) power = 1 / power; // i = 0 -> power 1; 1 -> 1/2, 2 -> 2, 3 -> 1/3, 4 -> 3, etc...
+            break;
+        } else {
+            rand -= powerChances[i];
+            i++;
+        }
+    }
+    //console.log ('power', power);
+
+    if (power === 1) {
+        return leaf(evalObject);
+    } else if (Number.isInteger(power)) {
+        return opNode('^', leaf(evalObject), leaf(constantEvalObject(power, 'discreteConstant')));
+    } else {
+        return opNode('^', leaf(evalObject), leaf(constantEvalObject(power, 'realConstant')));
+    }
+}
+
 function opNode(op, left, right) {
     return { type: 'op', op, left, right }; 
 }
 
-function randomTree(evalObject, {maxDepth = 3, probLeaf = 0.4} = {}, depth = 0) {
-  // if too deep or by chance, return leaf
-  if (depth >= maxDepth || Math.random() < probLeaf) {
-    const sv = evalObject[Math.floor(Math.random() * evalObject.length)];
-    return leafNode(sv);
-  }
-  const op = ops[Math.floor(Math.random() * ops.length)];
-  return opNode(op,
-    randomTree(evalObject, {maxDepth, probLeaf}, depth + 1),
-    randomTree(evalObject, {maxDepth, probLeaf}, depth + 1)
-  );
-}
-
-const defaultLeafTypeChances = [
-    0, // evalObject
-    1, // real constant
-    5, // discrete constant
-    1  // gaussian noise
-];
-
 function randomTree2(evalObjects, {leaves = 10, constantMin = 1, constantMax = 5, leafTypeChances,
-     spellVariableUniqueOccurence} = {}) {
+     spellVariableUniqueOccurence, powerChances} = {}) {
     if(!Array.isArray(leafTypeChances)) leafTypeChances = defaultLeafTypeChances;
     if (leaves === 1) {
         const sum = Object.values(leafTypeChances).reduce((s, v) => s + v, 0);
@@ -77,9 +89,9 @@ function randomTree2(evalObjects, {leaves = 10, constantMin = 1, constantMax = 5
                 const evalObjectNumber = Math.floor(Math.random() * evalObjects.length);
                 if (spellVariableUniqueOccurence === true) {
                     const [evalObject] = evalObjects.splice(evalObjectNumber,1);
-                    return leaf(evalObject);
+                    return poweredLeaf(evalObject, powerChances);
                 } else {
-                    return leaf(evalObjects[evalObjectNumber]);
+                    return poweredLeaf(evalObjects[evalObjectNumber], powerChances);
                 }
             }
         }
@@ -95,8 +107,8 @@ function randomTree2(evalObjects, {leaves = 10, constantMin = 1, constantMax = 5
         return leaf(gaussianNoiseEvalObject());
     } else {
         const leftLeaves = Math.floor(Math.random() * (leaves - 1)) + 1;
-        const l = randomTree2(evalObjects, {leaves: leftLeaves, constantMin, constantMax, leafTypeChances, spellVariableUniqueOccurence});
-        const r = randomTree2(evalObjects, {leaves: leaves - leftLeaves, constantMin, constantMax, leafTypeChances, spellVariableUniqueOccurence});
+        const l = randomTree2(evalObjects, {leaves: leftLeaves, constantMin, constantMax, leafTypeChances, spellVariableUniqueOccurence, powerChances});
+        const r = randomTree2(evalObjects, {leaves: leaves - leftLeaves, constantMin, constantMax, leafTypeChances, spellVariableUniqueOccurence, powerChances});
         const op = ops[Math.floor(Math.random() * ops.length)];
         return opNode (op, l, r);
     }
@@ -113,6 +125,7 @@ function evalTree(node) {
         case '/': return a / b; // doesn't avoid inf/NaN atm
         case 'max': return Math.max(a, b);
         case 'min': return Math.min(a, b);
+        case '^': return Math.pow(a, b);
         default: throw new Error('unknown op');
     }
 }
@@ -120,7 +133,8 @@ function evalTree(node) {
 function printExpr(node) {
     if (node.type === 'leaf') return node.evalObject.name;
     const l = printExpr(node.left), r = printExpr(node.right);
-    return node.op.length === 1 ? `(${l} ${node.op} ${r})` : `${node.op}(${l}, ${r})`;
+    if (node.op.length > 1) return `${node.op}(${l}, ${r})`;
+    return node.op === '^' ? `${l} ${node.op} ${r}` : `(${l} ${node.op} ${r})`;
 }
 
 function countSpellVariables(node) {

@@ -1,7 +1,7 @@
-import {randomTree, randomTree2, evalTree, printExpr, getTreeCharacteristics}  from './rule_tree.js';
+import {randomTree2, evalTree, printExpr, getTreeCharacteristics}  from './rule_tree.js';
 
 export class SpellVariable {
-    constructor({name, scaleType='discrete', min=0, max=1} = {}) {
+    constructor({name, scaleType='discrete', min=0, max=1, setStdDev = 0} = {}) {
         if (!name) throw new Error('name required');
         if (!['discrete','continuous'].includes(scaleType)) throw new Error('invalid scaleType');
         if (typeof min !== 'number' || typeof max !== 'number' || min > max) throw new Error('invalid range');
@@ -9,6 +9,7 @@ export class SpellVariable {
         this.scaleType = scaleType;
         this.min = min;
         this.max = max;
+        this.setVariance = setStdDev * setStdDev;
         this.type = 'spellVariable';
     }
 
@@ -34,22 +35,43 @@ export class SpellVariable {
 
     getValue() { return this.value };
     setValue(value) {
-        this.value = value;
+        this.value = randNormal(value, this.setVariance);
+        if (value >= this.min && this.value < this.min) this.value = this.min;
+        if (value <= this.max && this.value > this.max) this.value = this.max;
         this.validateValue();
+    }
+
+    sampleSD(n, sigma) {
+        let sum = 0, sumsq = 0;
+        for (let i=0;i<n;i++) {
+            const x = sigma * randNormal();
+            sum += x;
+            sumsq += x*x;
+        }
+        const mean = sum / n;
+        const variance = (sumsq - n*mean*mean) / (n-1); // sample variance
+        return Math.sqrt(Math.max(0, variance));
+    }
+
+    setRandomStdDev(stdDevSpread) {
+        const stdDev = Math.abs(randNormal(0, stdDevSpread * stdDevSpread));
+        this.setVariance = stdDev * stdDev; // should be chi squared distribution instead?
     }
 }
 
 export const spellVariables = [
-    new SpellVariable({name: 'sun height', scaleType: 'continuous', min: 0, max: 10, type: 'spellVariable'}),
-    new SpellVariable({name: 'chant length', scaleType: 'discrete', min: 1, max: 10, type: 'spellVariable' }),
-    new SpellVariable({name: 'casting implement length', scaleType: 'continuous', min: 1, max: 10, type: 'spellVariable'}),
-    new SpellVariable({name: 'number of targets', scaleType: 'discrete', min: 1, max: 10, type: 'spellVariable'}),
-    new SpellVariable({name: 'number of casters', scaleType: 'discrete', min: 1, max: 10, type: 'spellVariable'}),
-    new SpellVariable({name: 'caster\'s beard length', scaleType: 'continuous', min: 0, max: 10, type: 'spellVariable'}),
-    new SpellVariable({name: 'Dark Lord\'s presence', scaleType: 'discrete', min: 0, max: 1, type: 'spellVariable'}),
-    new SpellVariable({name: 'coolness factor', scaleType: 'continuous', min: 0, max: 10, type: 'spellVariable'}),
-    new SpellVariable({name: 'Light Lord\'s presence', scaleType: 'discrete', min: 0, max: 1, type: 'spellVariable'}),
-    new SpellVariable({name: 'target\'s extravagance', scaleType: 'continuous', min: 0, max: 10, type: 'spellVariable'})
+    new SpellVariable({name: 'sun height', scaleType: 'continuous', min: 0, max: 10}),
+    new SpellVariable({name: 'chant length', scaleType: 'discrete', min: 1, max: 10}),
+    new SpellVariable({name: 'casting implement length', scaleType: 'continuous', min: 1, max: 10}),
+    new SpellVariable({name: 'number of targets', scaleType: 'discrete', min: 1, max: 10}),
+    new SpellVariable({name: 'number of casters', scaleType: 'discrete', min: 1, max: 10}),
+    new SpellVariable({name: 'caster\'s beard length', scaleType: 'continuous', min: 0, max: 10}),
+    new SpellVariable({name: 'Dark Lord\'s presence', scaleType: 'discrete', min: 0, max: 1}),
+    new SpellVariable({name: 'coolness factor', scaleType: 'continuous', min: 0, max: 10}),
+    new SpellVariable({name: 'Light Lord\'s presence', scaleType: 'discrete', min: 0, max: 1}),
+    new SpellVariable({name: 'target\'s extravagance', scaleType: 'continuous', min: 0, max: 10}),
+    new SpellVariable({name: 'caster\'s gender', scaleType: 'continuous', min: 0, max: 1}),
+    new SpellVariable({name: 'moon phase', scaleType: 'continuous', min: 0, max: 4})
 ];
 
 export const effectNames = ['mana drain', 'spell power', 'spell duration', 'mana radiation'];
@@ -59,6 +81,17 @@ export class Spell {
         this.spellName = this.randomName(3);
         this.effectName = shuffle(effectNames)[0];
         this.spellVariables = this.randomSpellVariables(params.relevantSpellVariablesAmount);
+        if (params.stdDevSpread === undefined) {
+            this.spellVariables.forEach(elem => {
+                elem.setRandomStdDev(0);
+            });
+        } else {
+            this.spellVariables.forEach(elem => {
+                if(elem.scaleType === 'continuous') elem.setRandomStdDev(params.stdDevSpread);
+            });
+        }
+
+        this.effectMeasurementStdDev = Math.abs(randNormal(0, params.effectMeasurementStdDevSpread * params.effectMeasurementStdDevSpread));
 
         let i;
         for (i = 1; i < 100; i++) {
@@ -121,4 +154,11 @@ export function shuffle(array){
     [a[i], a[j]] = [a[j], a[i]];
   }
   return a;
+}
+
+export function randNormal(mean = 0, variance = 1) {
+    const u1 = Math.random();
+    const u2 = Math.random();
+    const z0 = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2); // standard normal
+    return mean + Math.sqrt(variance) * z0;
 }

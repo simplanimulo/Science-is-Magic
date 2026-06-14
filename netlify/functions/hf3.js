@@ -11,16 +11,15 @@ exports.handler = async (event) => {
     });
     
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    console.log(response);
+    //console.log(response);
     const result = await response.json();
-    //console.log('result.choices[0].message.content:', result.choices[0].message.content);
     
     return {
       statusCode: 200,
       body: JSON.stringify({message: result.choices[0].message.content})
     };
   } catch (e) {
-    console.error('Function error:', e);
+    console.error('HF3 function error:', e);
     return { statusCode: 500, body: JSON.stringify({ error: e.message }) };
   }
 };

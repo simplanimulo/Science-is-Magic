@@ -1,8 +1,9 @@
-import {Spell, shuffle} from './round.js';
-import {randomTree, randomTree2, evalTree, printExpr, getTreeCharacteristics}  from './rule_tree.js';
+import {Spell, shuffle, randNormal} from './round.js';
+import {randomTree2, evalTree, printExpr, getTreeCharacteristics, setOps}  from './rule_tree.js';
 import {generateComparisonPromptObject} from './promptBuilder.js'
+import {setDifficulty} from './setDifficulty.js'
 
-//window.m = {Spell, shuffle, randomTree, randomTree2, printExpr, getTreeCharacteristics}; // declared for console use
+window.m = {Spell, shuffle, randomTree2, printExpr, getTreeCharacteristics, randNormal}; // declared for console use
 
 const spellName = document.getElementById("spellName");
 const spellDescription = document.getElementById("spell description");
@@ -11,24 +12,34 @@ const runExperimentButton = document.getElementById("runExperimentButton");
 const revealRuleButton = document.getElementById("revealRuleButton");
 const experimentLog = document.getElementById("experimentLog");
 const ruleRevealContainer = document.getElementById("ruleRevealContainer");
-const rerollSpellButton = document.getElementById('rerollSpellButton');
 const nextRoundButton = document.getElementById('nextRoundButton');
 const guessRuleButton = document.getElementById('guessRuleButton');
 const ruleGuessInput = document.getElementById('ruleGuessInput');
+const formulaOperations = document.getElementById('formulaOperations');
+const variableSettingInaccuracy = document.getElementById('variableSettingInaccuracy');
+const resultMeasurementInaccuracy = document.getElementById('resultMeasurementInaccuracy');
+const difficultySelector = document.getElementById('difficultySelector');
 
-let roundDifficulty;
+let formulaComplexity;
 let spellParameters;
 let s; // spell
 let experimentNumber;
 let ruleGuessNumber;
+let experimentResultDisplayGranularity;
+let powerChancesArray;
+let leafTypeChancesArray;
+let ruleRevealed;
 
 function init() {
     spellName.innerHTML = '';
     spellDescription.innerHTML = '';
     experimentLog.innerHTML = '';
     ruleRevealContainer.innerHTML = '';
-    roundDifficulty = Math.round(document.getElementById('roundDifficulty').value);
-    console.log('Round difficulty: ' + roundDifficulty);
+    formulaComplexity = Math.round(document.getElementById('formulaComplexity').value);
+    console.log('Formula complexity: ' + formulaComplexity);
+    setFormulaOperations();
+    powerChancesArray = Array.from(document.getElementsByClassName('powerInput')).map(el => Number(el.value));
+    leafTypeChancesArray = Array.from(document.getElementsByClassName('leafTypeInput')).map(el => Number(el.value));
     initSpellParameters();
     s = new Spell(spellParameters);
     console.log('effectEquation: ' + printExpr(s.effectEquation));
@@ -36,17 +47,36 @@ function init() {
     initSpellInfoDisplay();
     experimentNumber = 0;
     ruleGuessNumber = 0;
+    experimentResultDisplayGranularity = 100; // exp res are rounded to granularity of 1 / experimentResultDisplayGranularity
+    ruleRevealed = false;
+}
+
+function setFormulaOperations() {
+    switch(formulaOperations.value) {
+        case "tier1":
+            setOps(['+', '-', '*', '/']);
+            break;
+        case "tier2":
+            setOps(['+', '-', '*', '/', 'min', 'max']);
+            break;
+        default:
+            throw new Error("Unknown formula operations value");
+    }
+    // the exponentiation operation for tier3 is set up with powerChances@initSpellParameters
 }
 
 function initSpellParameters() {
     spellParameters = {
-        relevantSpellVariablesAmount: roundDifficulty,
-        leaves: roundDifficulty,
-        constantMin: 1,
-        constantMax: 5,
-        leafTypeChances: [4,0,3,0],
-        minSpellVariables: Math.ceil(roundDifficulty / 2),
-        maxSpellVariables: Math.ceil(roundDifficulty / 1.5),
+        relevantSpellVariablesAmount: formulaComplexity,
+        stdDevSpread: variableSettingInaccuracy.value, // for setting spell Variables
+        effectMeasurementStdDevSpread: resultMeasurementInaccuracy.value, // for measuring spell effect
+        leaves: formulaComplexity,
+        constantMin: Number(document.getElementById('constMin').value),
+        constantMax: Number(document.getElementById('constMax').value),
+        leafTypeChances: leafTypeChancesArray,
+        powerChances: powerChancesArray,
+        minSpellVariables: Math.ceil(formulaComplexity * document.getElementById('SVLPercentMin').value / 100),
+        maxSpellVariables: Math.ceil(formulaComplexity * document.getElementById('SVLPercentMax').value / 100),
         constSubtreesPermitted: false,
         spellVariableUniqueOccurence: true
     }
@@ -60,12 +90,44 @@ function initSpellInfoDisplay() {
     spellDescription.innerHTML += s.spellVariablesDescrption();
 }
 
+difficultySelector.addEventListener('change', (e) => {
+    switch (difficultySelector.value) {
+        case "1":
+        case "2":
+        case "3":
+            setDifficulty(difficultySelector.value);
+            setEditabilityOfDetailedRoundCharacteristics(false);
+            break;
+        case "custom":
+            setEditabilityOfDetailedRoundCharacteristics(true);
+            break;
+        default:
+            throw new Error("Unknown difficulty setting selected");
+    }
+});
+
+// make inputs/textareas/selects interactions enabled or disabled
+function setEditabilityOfDetailedRoundCharacteristics(editabilityValue) {
+    const container = document.getElementById('detailedRoundCharacteristics');
+
+    container.querySelectorAll('input, textarea, select, button').forEach(el => {
+        if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+            //el.readOnly = !editabilityValue;    // for text-like inputs
+            el.disabled = !editabilityValue;
+        } else {
+            el.disabled = !editabilityValue;    // for select/button and others
+        }
+    });
+    //detailedRoundCharacteristics.style.backgroundColor = editabilityValue ? 'white' : 'gray';
+}
+
 revealRuleButton.addEventListener('click', (e) => {
     let ruleDescription = '';
     ruleDescription += '<strong>RULE REVEAL</strong> for '
     ruleDescription += ' <strong>' + s.effectName + '</strong>: '
     ruleDescription += printExpr(s.effectEquation);
     addExperimentLogEntry(ruleDescription);
+    ruleRevealed = true;
 });
 
 runExperimentButton.addEventListener('click', (e) => {
@@ -106,6 +168,10 @@ async function reportLLMEvaluatedRuleGuessQuality(ruleGuessQualityElem) {
         });
         const result = await response.json();
         ruleGuessQualityElem.textContent = result.message;
+        if(result.message === '100%' && !ruleRevealed) {
+            ruleRevealed = true;
+            playVictorySound();
+        }
     } catch(e) { ruleGuessQualityElem.textContent = 'Error: '+ e.message; }
 }
 
@@ -118,7 +184,9 @@ function runExperiment(parameters) {
     try {
         s.setSpellVariables(parametersArray);
         const result = evalTree(s.effectEquation);
-        experimentDescription += 'The measured value of <strong>' + s.effectName + '</strong> is ' + result +'.';
+        const measuredResult = randNormal(result, s.effectMeasurementStdDev * s.effectMeasurementStdDev);
+        const roundedResult = Math.round(measuredResult * experimentResultDisplayGranularity) / experimentResultDisplayGranularity;
+        experimentDescription += 'The measured value of <strong>' + s.effectName + '</strong> is ' + roundedResult +'.';
     } catch (err) {
         experimentDescription += 'Failure, ';
         experimentDescription += (err && err.message) ? err.message : String(err);
@@ -135,4 +203,13 @@ function addExperimentLogEntry(entry) {
     return p;
 }
 
+function playVictorySound() {
+    const rand = Math.floor(Math.random() * 4) + 1;
+    const fileName = 'Victory' + rand + '.mp3';
+    const a = new Audio(fileName);
+    a.play().catch(e => console.error(e));  
+}
+
+const evt = new Event('change', { bubbles: true, cancelable: true });
+difficultySelector.dispatchEvent(evt); // setting initial values of detailed characteristics inputs through triggering eventListener
 init();
